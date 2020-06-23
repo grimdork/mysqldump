@@ -1,7 +1,9 @@
-# Go MYSQL Dump
-Create MYSQL dumps in Go without the `mysqldump` CLI as a dependancy.
+# MySQL Dump
 
-### Simple Example
+Create MySQL/MariaDB dumps in Go without external tools.
+
+## Simple Example
+
 ```go
 package main
 
@@ -9,7 +11,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/JamesStewy/go-mysqldump"
+	"github.com/grimdork/gmysqldump"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -51,5 +53,8 @@ func main() {
 
 ```
 
+## Selective example
+
+## Original documentation
+
 [![GoDoc](https://godoc.org/github.com/JamesStewy/go-mysqldump?status.svg)](https://godoc.org/github.com/JamesStewy/go-mysqldump)
-[![Build Status](https://travis-ci.org/JamesStewy/go-mysqldump.svg?branch=master)](https://travis-ci.org/JamesStewy/go-mysqldump)

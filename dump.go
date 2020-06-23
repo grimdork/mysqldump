@@ -67,8 +67,13 @@ UNLOCK TABLES;
 -- Dump completed on {{ .CompleteTime }}
 `
 
-// Creates a MYSQL Dump based on the options supplied through the dumper.
-func (d *Dumper) Dump() (string, error) {
+// Dump a MySQL/MariaDB database or selection of tables from same based on the options supplied through the dumper.
+func (d *Dumper) Dump(filters ...string) (string, error) {
+	list := make(map[string]interface{})
+	for _, x := range filters {
+		list[x] = nil
+	}
+
 	name := time.Now().Format(d.format)
 	p := path.Join(d.dir, name+".sql")
 
@@ -102,12 +107,26 @@ func (d *Dumper) Dump() (string, error) {
 		return p, err
 	}
 
-	// Get sql for each table
-	for _, name := range tables {
-		if t, err := createTable(d.db, name); err == nil {
-			data.Tables = append(data.Tables, t)
-		} else {
-			return p, err
+	// Get sql for each desired table
+	if len(list) > 0 {
+		for _, name := range tables {
+			_, ok := list[name]
+			if !ok {
+				continue
+			}
+			if t, err := createTable(d.db, name); err == nil {
+				data.Tables = append(data.Tables, t)
+			} else {
+				return p, err
+			}
+		}
+	} else {
+		for _, name := range tables {
+			if t, err := createTable(d.db, name); err == nil {
+				data.Tables = append(data.Tables, t)
+			} else {
+				return p, err
+			}
 		}
 	}
 

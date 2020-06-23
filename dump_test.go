@@ -272,7 +272,8 @@ func TestDumpOk(t *testing.T) {
 		dir:    "/tmp/",
 	}
 
-	path, err := dumper.Dump()
+	// Dump the table by name to test filter logic.
+	path, err := dumper.Dump("Test_Table")
 
 	if path == "" {
 		t.Errorf("No empty path was expected while dumping the database")
