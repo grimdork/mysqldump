@@ -75,7 +75,7 @@ func (d *Dumper) Dump(filters ...string) (string, error) {
 	}
 
 	name := time.Now().Format(d.format)
-	p := path.Join(d.dir, name+".sql")
+	p := path.Join(d.dir, name)
 
 	// Check dump directory
 	if e, _ := exists(p); e {
