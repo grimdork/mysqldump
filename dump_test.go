@@ -1,4 +1,4 @@
-package mysqldump
+package sqldump
 
 import (
 	"io/ioutil"

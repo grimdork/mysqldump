@@ -44,4 +44,4 @@ This example uses the mymysql driver (example 7 https://github.com/ziutek/mymysq
         dumper.Close()
     }
 */
-package mysqldump
+package sqldump
