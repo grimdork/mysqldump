@@ -5,8 +5,6 @@ import (
 	"errors"
 	"os"
 	"strings"
-	"text/template"
-	"time"
 )
 
 type table struct {
@@ -16,6 +14,7 @@ type table struct {
 }
 
 type dump struct {
+	file          *os.File
 	DumpVersion   string
 	ServerVersion string
 	Tables        []*table
@@ -26,11 +25,6 @@ const version = "0.5.0"
 
 // Dump a MySQL/MariaDB or PostgreSQL database or selection of tables from same based on the options supplied through the dumper.
 func (d *Dumper) Dump(filters ...string) error {
-	list := make(map[string]interface{})
-	for _, x := range filters {
-		list[x] = nil
-	}
-
 	// Check dump directory
 	if e, _ := exists(d.path); e {
 		return errors.New("Dump '" + d.path + "' already exists.")
@@ -44,6 +38,7 @@ func (d *Dumper) Dump(filters ...string) error {
 
 	defer f.Close()
 	data := dump{
+		file:        f,
 		DumpVersion: version,
 		Tables:      make([]*table, 0),
 	}
@@ -57,48 +52,7 @@ func (d *Dumper) Dump(filters ...string) error {
 		return d.DumpPostgres(data, filters...)
 	}
 
-	// Get tables
-	tables, err := d.getMySQLTables()
-	if err != nil {
-		return err
-	}
-
-	// Get sql for each desired table
-	if len(list) > 0 {
-		for _, name := range tables {
-			_, ok := list[name]
-			if !ok {
-				continue
-			}
-			if t, err := d.createMySQLTable(name); err == nil {
-				data.Tables = append(data.Tables, t)
-			} else {
-				return err
-			}
-		}
-	} else {
-		for _, name := range tables {
-			if t, err := d.createMySQLTable(name); err == nil {
-				data.Tables = append(data.Tables, t)
-			} else {
-				return err
-			}
-		}
-	}
-
-	// Set complete time
-	data.CompleteTime = time.Now().String()
-
-	// Write dump to file
-	t, err := template.New("mysqldump").Parse(mytpl)
-	if err != nil {
-		return err
-	}
-	if err = t.Execute(f, data); err != nil {
-		return err
-	}
-
-	return nil
+	return d.DumpMySQL(data, filters...)
 }
 
 func (d *Dumper) getServerVersion() (string, error) {

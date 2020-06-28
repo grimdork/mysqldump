@@ -99,7 +99,13 @@ func TestGetServerVersionOk(t *testing.T) {
 
 	mock.ExpectQuery("^SELECT version()").WillReturnRows(rows)
 
-	result, err := getServerVersion(db)
+	d, err := NewDumper(db, os.TempDir(), "test_dump")
+	if err != nil {
+		t.Errorf("Error creating dumper: %s", err.Error())
+		t.FailNow()
+	}
+
+	result, err := d.getServerVersion()
 	if err != nil {
 		t.Errorf("error was not expected while updating stats: %s", err)
 	}

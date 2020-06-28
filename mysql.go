@@ -3,7 +3,9 @@ package sqldump
 import (
 	"database/sql"
 	"errors"
+	"html/template"
 	"strings"
+	"time"
 )
 
 const mytpl = `-- Go SQL Dump {{ .DumpVersion }}
@@ -47,6 +49,54 @@ UNLOCK TABLES;
 {{ end }}
 -- Dump completed on {{ .CompleteTime }}
 `
+
+// DumpMySQL to file.
+func (d *Dumper) DumpMySQL(data dump, filters ...string) error {
+	list := make(map[string]interface{})
+	for _, x := range filters {
+		list[x] = nil
+	}
+
+	// Get tables
+	tables, err := d.getMySQLTables()
+	if err != nil {
+		return err
+	}
+
+	// Get sql for each desired table
+	if len(list) > 0 {
+		for _, name := range tables {
+			_, ok := list[name]
+			if !ok {
+				continue
+			}
+			if t, err := d.createMySQLTable(name); err == nil {
+				data.Tables = append(data.Tables, t)
+			} else {
+				return err
+			}
+		}
+	} else {
+		for _, name := range tables {
+			if t, err := d.createMySQLTable(name); err == nil {
+				data.Tables = append(data.Tables, t)
+			} else {
+				return err
+			}
+		}
+	}
+
+	// Set complete time
+	data.CompleteTime = time.Now().String()
+
+	// Write dump to file
+	t, err := template.New("mysqldump").Parse(mytpl)
+	if err != nil {
+		return err
+	}
+
+	return t.Execute(data.file, data)
+}
 
 func (d *Dumper) getMySQLTables() ([]string, error) {
 	tables := make([]string, 0)
