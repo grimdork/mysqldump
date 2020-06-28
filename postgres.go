@@ -90,6 +90,24 @@ const (
 	--
 	-- ------------------------------------------------------
 	-- Server version	{{ .ServerVersion }}
+
+	{{range .Tables}}
+	--
+	-- Table structure for table {{ .Name }}
+	--
+	
+	DROP TABLE IF EXISTS {{ .Name }};
+	{{ .SQL }};
+
+	--
+	-- Dumping data for table {{ .Name }}
+	--
+	
+	{{ if .Values }}
+	INSERT INTO {{ .Name }} VALUES {{ .Values }};
+	{{ end }}
+	{{ end }}
+	-- Dump completed on {{ .CompleteTime }}
 `
 )
 
