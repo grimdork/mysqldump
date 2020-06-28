@@ -1,8 +1,8 @@
-# MySQL Dump
+# SQL dump
 
-Create MySQL/MariaDB dumps in Go without external tools.
+Create MySQL/MariaDB/PostgreSQL dumps in Go without external tools.
 
-## Simple Example
+## MySQL example
 
 ```go
 package main
@@ -53,7 +53,17 @@ func main() {
 
 ```
 
-## Selective example
+## PostgreSQL example
+
+Import "github.com/lib/pq" and change the connection string in the example above, then the package handles the rest.
+
+## Selective dump
+
+You may also specify a list of tables to include to the Dump() function:
+
+```go
+	dumper.Dump("users", "groups")
+```
 
 ## Original documentation
 
