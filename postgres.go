@@ -1,5 +1,10 @@
 package mysqldump
 
+import (
+	"database/sql"
+	"fmt"
+)
+
 const (
 	// Show the names of all tables in database, one per row.
 	PG_SHOW_TABLES = `select tablename from pg_catalog.pg_tables where schemaname!='pg_catalog' and schemaname!='information_schema';`
@@ -80,13 +85,39 @@ const (
 
 	// This removes the table dumper from the database.
 	PG_DROP_SHOW_TABLE_SQL = `DROP FUNCTION show_table_sql(p_table_name varchar);`
+
+	pgtpl = `-- Go SQL Dump {{ .DumpVersion }}
+	--
+	-- ------------------------------------------------------
+	-- Server version	{{ .ServerVersion }}
+`
 )
 
 // DumpPostgres returns the SQL needed to recreate a Postgres database.
-func (d *Dumper) DumpPostgres(filters ...string) (string, error) {
-	return "", nil
+func (d *Dumper) DumpPostgres(filters ...string) error {
+	list, err := d.GetPostgresTables(d.db)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("%#v\n", list)
+	return nil
 }
 
-func (d *Dumper) GetPostgresTables() {
+// GetPostgresTables returns the table names from a PostgreSQL database.
+func (d *Dumper) GetPostgresTables(db *sql.DB) ([]string, error) {
+	tables := []string{}
+	rows, err := db.Query(PG_SHOW_TABLES)
+	if err != nil {
+		return tables, err
+	}
 
+	for rows.Next() {
+		var table sql.NullString
+		if err := rows.Scan(&table); err != nil {
+			return tables, err
+		}
+		tables = append(tables, table.String)
+	}
+	return tables, rows.Err()
 }

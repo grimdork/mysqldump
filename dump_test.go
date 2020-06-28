@@ -3,6 +3,7 @@ package mysqldump
 import (
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -24,7 +25,7 @@ func TestGetTablesOk(t *testing.T) {
 
 	mock.ExpectQuery("^SHOW TABLES$").WillReturnRows(rows)
 
-	result, err := getTables(db)
+	result, err := getMySQLTables(db)
 	if err != nil {
 		t.Errorf("error was not expected while updating stats: %s", err)
 	}
@@ -56,7 +57,7 @@ func TestGetTablesNil(t *testing.T) {
 
 	mock.ExpectQuery("^SHOW TABLES$").WillReturnRows(rows)
 
-	result, err := getTables(db)
+	result, err := getMySQLTables(db)
 	if err != nil {
 		t.Errorf("error was not expected while updating stats: %s", err)
 	}
@@ -116,7 +117,7 @@ func TestCreateTableSQLOk(t *testing.T) {
 
 	mock.ExpectQuery("^SHOW CREATE TABLE Test_Table$").WillReturnRows(rows)
 
-	result, err := createTableSQL(db, "Test_Table")
+	result, err := createMySQLTableSQL(db, "Test_Table")
 
 	if err != nil {
 		t.Errorf("error was not expected while updating stats: %s", err)
@@ -148,7 +149,7 @@ func TestCreateTableValuesOk(t *testing.T) {
 
 	mock.ExpectQuery("^SELECT (.+) FROM test$").WillReturnRows(rows)
 
-	result, err := createTableValues(db, "test")
+	result, err := createMySQLTableValues(db, "test")
 	if err != nil {
 		t.Errorf("error was not expected while updating stats: %s", err)
 	}
@@ -180,7 +181,7 @@ func TestCreateTableValuesNil(t *testing.T) {
 
 	mock.ExpectQuery("^SELECT (.+) FROM test$").WillReturnRows(rows)
 
-	result, err := createTableValues(db, "test")
+	result, err := createMySQLTableValues(db, "test")
 	if err != nil {
 		t.Errorf("error was not expected while updating stats: %s", err)
 	}
@@ -205,8 +206,8 @@ func TestCreateTableOk(t *testing.T) {
 
 	defer db.Close()
 
-	createTableRows := sqlmock.NewRows([]string{"Table", "Create Table"}).
-		AddRow("Test_Table", "CREATE TABLE 'Test_Table' (`id` int(11) NOT NULL AUTO_INCREMENT,`s` char(60) DEFAULT NULL, PRIMARY KEY (`id`))ENGINE=InnoDB DEFAULT CHARSET=latin1")
+	createTableRows := sqlmock.NewRows(
+		[]string{"Table", "Create Table"}).AddRow("Test_Table", "CREATE TABLE 'Test_Table' (`id` int(11) NOT NULL AUTO_INCREMENT,`s` char(60) DEFAULT NULL, PRIMARY KEY (`id`))ENGINE=InnoDB DEFAULT CHARSET=latin1")
 
 	createTableValueRows := sqlmock.NewRows([]string{"id", "email", "name"}).
 		AddRow(1, nil, "Test Name 1").
@@ -215,7 +216,7 @@ func TestCreateTableOk(t *testing.T) {
 	mock.ExpectQuery("^SHOW CREATE TABLE Test_Table$").WillReturnRows(createTableRows)
 	mock.ExpectQuery("^SELECT (.+) FROM Test_Table$").WillReturnRows(createTableValueRows)
 
-	result, err := createTable(db, "Test_Table")
+	result, err := createMySQLTable(db, "Test_Table")
 	if err != nil {
 		t.Errorf("error was not expected while updating stats: %s", err)
 	}
@@ -237,8 +238,8 @@ func TestCreateTableOk(t *testing.T) {
 }
 
 func TestDumpOk(t *testing.T) {
-
-	tmpFile := "/tmp/test_format.sql"
+	tmpname := "test_format"
+	tmpFile := filepath.Join(os.TempDir(), tmpname)
 	os.Remove(tmpFile)
 
 	db, mock, err := sqlmock.New()
@@ -267,9 +268,9 @@ func TestDumpOk(t *testing.T) {
 	mock.ExpectQuery("^SELECT (.+) FROM Test_Table$").WillReturnRows(createTableValueRows)
 
 	dumper := &Dumper{
-		db:     db,
-		format: "test_format",
-		dir:    "/tmp/",
+		db:       db,
+		basename: tmpname,
+		dir:      os.TempDir(),
 	}
 
 	// Dump the table by name to test filter logic.
@@ -283,7 +284,9 @@ func TestDumpOk(t *testing.T) {
 		t.Errorf("error was not expected while dumping the database: %s", err)
 	}
 
-	f, err := ioutil.ReadFile("/tmp/test_format.sql")
+	f, err := ioutil.ReadFile(
+		filepath.Join(os.TempDir(), tmpname),
+	)
 
 	if err != nil {
 		t.Errorf("error was not expected while reading the file: %s", err)
