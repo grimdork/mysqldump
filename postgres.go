@@ -2,7 +2,6 @@ package sqldump
 
 import (
 	"database/sql"
-	"fmt"
 )
 
 const (
@@ -10,7 +9,7 @@ const (
 	PG_SHOW_TABLES = `select tablename from pg_catalog.pg_tables where schemaname!='pg_catalog' and schemaname!='information_schema';`
 
 	// This function dumps the SQL for a specified table.
-	PG_SHOW_TABLE_SQL = `CREATE OR REPLACE FUNCTION show_table_sql(p_table_name varchar)
+	PG_SHOW_TABLE_SQL = `CREATE OR REPLACE FUNCTION public.show_table_sql(p_table_name varchar)
 	RETURNS text AS
   $BODY$
   DECLARE
@@ -81,7 +80,8 @@ const (
 	  RETURN v_table_ddl;
   END;
   $BODY$
-	LANGUAGE 'plpgsql' COST 100.0 SECURITY INVOKER;`
+	LANGUAGE 'plpgsql' COST 100.0 SECURITY INVOKER;
+`
 
 	// This removes the table dumper from the database.
 	PG_DROP_SHOW_TABLE_SQL = `DROP FUNCTION show_table_sql(p_table_name varchar);`
@@ -112,20 +112,30 @@ const (
 )
 
 // DumpPostgres returns the SQL needed to recreate a Postgres database.
-func (d *Dumper) DumpPostgres(filters ...string) error {
-	list, err := d.GetPostgresTables(d.db)
+func (d *Dumper) DumpPostgres(data dump, filters ...string) error {
+	list, err := d.getPostgresTables()
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("%#v\n", list)
-	return nil
+	// Install the procedure to generate SQL for tables.
+	err = d.installProcedure()
+	if err != nil {
+		return err
+	}
+
+	for _, name := range list {
+		d.createPostgresTable(name)
+	}
+
+	err = d.dropProcedure()
+	return err
 }
 
-// GetPostgresTables returns the table names from a PostgreSQL database.
-func (d *Dumper) GetPostgresTables(db *sql.DB) ([]string, error) {
+// getpostgrestables returns the table names from a PostgreSQL database.
+func (d *Dumper) getPostgresTables() ([]string, error) {
 	tables := []string{}
-	rows, err := db.Query(PG_SHOW_TABLES)
+	rows, err := d.db.Query(PG_SHOW_TABLES)
 	if err != nil {
 		return tables, err
 	}
@@ -138,4 +148,40 @@ func (d *Dumper) GetPostgresTables(db *sql.DB) ([]string, error) {
 		tables = append(tables, table.String)
 	}
 	return tables, rows.Err()
+}
+
+// installProcedure installs the SQL generator plpgsql.
+func (d *Dumper) installProcedure() error {
+	_, err := d.db.Exec(PG_SHOW_TABLE_SQL)
+	return err
+}
+
+// dropProcedure removes the SQL generator plpgsql.
+func (d *Dumper) dropProcedure() error {
+	// _, err := d.db.Exec(PG_DROP_SHOW_TABLE_SQL)
+	// return err
+	return nil
+}
+
+func (d *Dumper) createPostgresTable(name string) (*table, error) {
+	var err error
+	t := &table{Name: name}
+
+	if t.SQL, err = d.createPostgresTableSQL(name); err != nil {
+		return nil, err
+	}
+
+	if t.Values, err = d.createPostgresTableValues(name); err != nil {
+		return nil, err
+	}
+
+	return t, nil
+}
+
+func (d *Dumper) createPostgresTableSQL(name string) (string, error) {
+	return "", nil
+}
+
+func (d *Dumper) createPostgresTableValues(name string) (string, error) {
+	return "", nil
 }
