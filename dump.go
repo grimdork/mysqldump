@@ -49,7 +49,7 @@ func (d *Dumper) Dump(filters ...string) error {
 	}
 
 	// Get server version, thereby identifying type.
-	if data.ServerVersion, err = getServerVersion(d.db); err != nil {
+	if data.ServerVersion, err = d.getServerVersion(); err != nil {
 		return err
 	}
 
@@ -101,9 +101,9 @@ func (d *Dumper) Dump(filters ...string) error {
 	return nil
 }
 
-func getServerVersion(db *sql.DB) (string, error) {
+func (d *Dumper) getServerVersion() (string, error) {
 	var server_version sql.NullString
-	if err := db.QueryRow("SELECT version()").Scan(&server_version); err != nil {
+	if err := d.db.QueryRow("SELECT version()").Scan(&server_version); err != nil {
 		return "", err
 	}
 	return server_version.String, nil
