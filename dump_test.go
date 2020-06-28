@@ -248,7 +248,6 @@ func TestDumpOk(t *testing.T) {
 	}
 
 	defer db.Close()
-
 	showTablesRows := sqlmock.NewRows([]string{"Tables_in_Testdb"}).
 		AddRow("Test_Table")
 
@@ -267,33 +266,31 @@ func TestDumpOk(t *testing.T) {
 	mock.ExpectQuery("^SHOW CREATE TABLE Test_Table$").WillReturnRows(createTableRows)
 	mock.ExpectQuery("^SELECT (.+) FROM Test_Table$").WillReturnRows(createTableValueRows)
 
-	dumper := &Dumper{
-		db:       db,
-		basename: tmpname,
-		dir:      os.TempDir(),
+	dumper, err := NewDumper(db, os.TempDir(), tmpname)
+	if err != nil {
+		t.Errorf("Couldn't reate dumper structure: %s", err.Error())
+		t.FailNow()
 	}
 
 	// Dump the table by name to test filter logic.
-	path, err := dumper.Dump("Test_Table")
-
-	if path == "" {
-		t.Errorf("No empty path was expected while dumping the database")
+	err = dumper.Dump("Test_Table")
+	if dumper.Path() == "" {
+		t.Errorf("Unexpected empty path while dumping the database.")
+		t.FailNow()
 	}
 
 	if err != nil {
-		t.Errorf("error was not expected while dumping the database: %s", err)
+		t.Errorf("Error while dumping the database: %s", err.Error())
+		t.FailNow()
 	}
 
-	f, err := ioutil.ReadFile(
-		filepath.Join(os.TempDir(), tmpname),
-	)
-
+	f, err := ioutil.ReadFile(dumper.Path())
 	if err != nil {
-		t.Errorf("error was not expected while reading the file: %s", err)
+		t.Errorf("Unexpected error while reading the file: %s", err.Error())
+		t.FailNow()
 	}
 
 	result := strings.Replace(strings.Split(string(f), "-- Dump completed")[0], "`", "\\", -1)
-
 	expected := `-- Go SQL Dump ` + version + `
 --
 -- ------------------------------------------------------
