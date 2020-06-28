@@ -54,11 +54,11 @@ func (d *Dumper) Dump(filters ...string) error {
 	}
 
 	if strings.Contains(data.ServerVersion, "PostgreSQL") {
-		return d.DumpPostgres(filters...)
+		return d.DumpPostgres(data, filters...)
 	}
 
 	// Get tables
-	tables, err := getMySQLTables(d.db)
+	tables, err := d.getMySQLTables()
 	if err != nil {
 		return err
 	}
@@ -70,7 +70,7 @@ func (d *Dumper) Dump(filters ...string) error {
 			if !ok {
 				continue
 			}
-			if t, err := createMySQLTable(d.db, name); err == nil {
+			if t, err := d.createMySQLTable(name); err == nil {
 				data.Tables = append(data.Tables, t)
 			} else {
 				return err
@@ -78,7 +78,7 @@ func (d *Dumper) Dump(filters ...string) error {
 		}
 	} else {
 		for _, name := range tables {
-			if t, err := createMySQLTable(d.db, name); err == nil {
+			if t, err := d.createMySQLTable(name); err == nil {
 				data.Tables = append(data.Tables, t)
 			} else {
 				return err

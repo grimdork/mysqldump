@@ -48,11 +48,11 @@ UNLOCK TABLES;
 -- Dump completed on {{ .CompleteTime }}
 `
 
-func getMySQLTables(db *sql.DB) ([]string, error) {
+func (d *Dumper) getMySQLTables() ([]string, error) {
 	tables := make([]string, 0)
 
 	// Get table list
-	rows, err := db.Query("SHOW TABLES")
+	rows, err := d.db.Query("SHOW TABLES")
 	if err != nil {
 		return tables, err
 	}
@@ -69,26 +69,26 @@ func getMySQLTables(db *sql.DB) ([]string, error) {
 	return tables, rows.Err()
 }
 
-func createMySQLTable(db *sql.DB, name string) (*table, error) {
+func (d *Dumper) createMySQLTable(name string) (*table, error) {
 	var err error
 	t := &table{Name: name}
 
-	if t.SQL, err = createMySQLTableSQL(db, name); err != nil {
+	if t.SQL, err = d.createMySQLTableSQL(name); err != nil {
 		return nil, err
 	}
 
-	if t.Values, err = createMySQLTableValues(db, name); err != nil {
+	if t.Values, err = d.createMySQLTableValues(name); err != nil {
 		return nil, err
 	}
 
 	return t, nil
 }
 
-func createMySQLTableSQL(db *sql.DB, name string) (string, error) {
+func (d *Dumper) createMySQLTableSQL(name string) (string, error) {
 	// Get table creation SQL
 	var table_return sql.NullString
 	var table_sql sql.NullString
-	err := db.QueryRow("SHOW CREATE TABLE "+name).Scan(&table_return, &table_sql)
+	err := d.db.QueryRow("SHOW CREATE TABLE "+name).Scan(&table_return, &table_sql)
 
 	if err != nil {
 		return "", err
@@ -100,9 +100,9 @@ func createMySQLTableSQL(db *sql.DB, name string) (string, error) {
 	return table_sql.String, nil
 }
 
-func createMySQLTableValues(db *sql.DB, name string) (string, error) {
+func (d *Dumper) createMySQLTableValues(name string) (string, error) {
 	// Get Data
-	rows, err := db.Query("SELECT * FROM " + name)
+	rows, err := d.db.Query("SELECT * FROM " + name)
 	if err != nil {
 		return "", err
 	}

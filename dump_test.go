@@ -25,7 +25,13 @@ func TestGetTablesOk(t *testing.T) {
 
 	mock.ExpectQuery("^SHOW TABLES$").WillReturnRows(rows)
 
-	result, err := getMySQLTables(db)
+	d, err := NewDumper(db, os.TempDir(), "test_dump")
+	if err != nil {
+		t.Errorf("Error creating dumper: %s", err.Error())
+		t.FailNow()
+	}
+
+	result, err := d.getMySQLTables()
 	if err != nil {
 		t.Errorf("error was not expected while updating stats: %s", err)
 	}
@@ -57,7 +63,13 @@ func TestGetTablesNil(t *testing.T) {
 
 	mock.ExpectQuery("^SHOW TABLES$").WillReturnRows(rows)
 
-	result, err := getMySQLTables(db)
+	d, err := NewDumper(db, os.TempDir(), "test_dump")
+	if err != nil {
+		t.Errorf("Error creating dumper: %s", err.Error())
+		t.FailNow()
+	}
+
+	result, err := d.getMySQLTables()
 	if err != nil {
 		t.Errorf("error was not expected while updating stats: %s", err)
 	}
@@ -117,7 +129,13 @@ func TestCreateTableSQLOk(t *testing.T) {
 
 	mock.ExpectQuery("^SHOW CREATE TABLE Test_Table$").WillReturnRows(rows)
 
-	result, err := createMySQLTableSQL(db, "Test_Table")
+	d, err := NewDumper(db, os.TempDir(), "test_dump")
+	if err != nil {
+		t.Errorf("Error creating dumper: %s", err.Error())
+		t.FailNow()
+	}
+
+	result, err := d.createMySQLTableSQL("Test_Table")
 
 	if err != nil {
 		t.Errorf("error was not expected while updating stats: %s", err)
@@ -149,7 +167,13 @@ func TestCreateTableValuesOk(t *testing.T) {
 
 	mock.ExpectQuery("^SELECT (.+) FROM test$").WillReturnRows(rows)
 
-	result, err := createMySQLTableValues(db, "test")
+	d, err := NewDumper(db, os.TempDir(), "test_dump")
+	if err != nil {
+		t.Errorf("Error creating dumper: %s", err.Error())
+		t.FailNow()
+	}
+
+	result, err := d.createMySQLTableValues("test")
 	if err != nil {
 		t.Errorf("error was not expected while updating stats: %s", err)
 	}
@@ -181,7 +205,13 @@ func TestCreateTableValuesNil(t *testing.T) {
 
 	mock.ExpectQuery("^SELECT (.+) FROM test$").WillReturnRows(rows)
 
-	result, err := createMySQLTableValues(db, "test")
+	d, err := NewDumper(db, os.TempDir(), "test_dump")
+	if err != nil {
+		t.Errorf("Error creating dumper: %s", err.Error())
+		t.FailNow()
+	}
+
+	result, err := d.createMySQLTableValues("test")
 	if err != nil {
 		t.Errorf("error was not expected while updating stats: %s", err)
 	}
@@ -216,7 +246,13 @@ func TestCreateTableOk(t *testing.T) {
 	mock.ExpectQuery("^SHOW CREATE TABLE Test_Table$").WillReturnRows(createTableRows)
 	mock.ExpectQuery("^SELECT (.+) FROM Test_Table$").WillReturnRows(createTableValueRows)
 
-	result, err := createMySQLTable(db, "Test_Table")
+	d, err := NewDumper(db, os.TempDir(), "test_dump")
+	if err != nil {
+		t.Errorf("Error creating dumper: %s", err.Error())
+		t.FailNow()
+	}
+
+	result, err := d.createMySQLTable("Test_Table")
 	if err != nil {
 		t.Errorf("error was not expected while updating stats: %s", err)
 	}
