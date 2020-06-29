@@ -3,8 +3,7 @@ package sqldump
 import (
 	"database/sql"
 	"errors"
-	"html/template"
-	"strings"
+	"text/template"
 	"time"
 )
 
@@ -51,38 +50,13 @@ UNLOCK TABLES;
 `
 
 // DumpMySQL to file.
-func (d *Dumper) DumpMySQL(data dump, filters ...string) error {
-	list := make(map[string]interface{})
-	for _, x := range filters {
-		list[x] = nil
-	}
-
-	// Get tables
-	tables, err := d.getMySQLTables()
-	if err != nil {
-		return err
-	}
-
+func (d *Dumper) DumpMySQL(data dump, list ...string) error {
 	// Get sql for each desired table
-	if len(list) > 0 {
-		for _, name := range tables {
-			_, ok := list[name]
-			if !ok {
-				continue
-			}
-			if t, err := d.createMySQLTable(name); err == nil {
-				data.Tables = append(data.Tables, t)
-			} else {
-				return err
-			}
-		}
-	} else {
-		for _, name := range tables {
-			if t, err := d.createMySQLTable(name); err == nil {
-				data.Tables = append(data.Tables, t)
-			} else {
-				return err
-			}
+	for _, name := range list {
+		if t, err := d.createMySQLTable(name); err == nil {
+			data.Tables = append(data.Tables, t)
+		} else {
+			return err
 		}
 	}
 
@@ -127,7 +101,7 @@ func (d *Dumper) createMySQLTable(name string) (*table, error) {
 		return nil, err
 	}
 
-	if t.Values, err = d.createMySQLTableValues(name); err != nil {
+	if t.Values, err = d.createTableValues(name); err != nil {
 		return nil, err
 	}
 
@@ -139,7 +113,6 @@ func (d *Dumper) createMySQLTableSQL(name string) (string, error) {
 	var table_return sql.NullString
 	var table_sql sql.NullString
 	err := d.db.QueryRow("SHOW CREATE TABLE "+name).Scan(&table_return, &table_sql)
-
 	if err != nil {
 		return "", err
 	}
@@ -148,56 +121,4 @@ func (d *Dumper) createMySQLTableSQL(name string) (string, error) {
 	}
 
 	return table_sql.String, nil
-}
-
-func (d *Dumper) createMySQLTableValues(name string) (string, error) {
-	// Get Data
-	rows, err := d.db.Query("SELECT * FROM " + name)
-	if err != nil {
-		return "", err
-	}
-	defer rows.Close()
-
-	// Get columns
-	columns, err := rows.Columns()
-	if err != nil {
-		return "", err
-	}
-	if len(columns) == 0 {
-		return "", errors.New("No columns in table " + name + ".")
-	}
-
-	// Read data
-	data_text := make([]string, 0)
-	for rows.Next() {
-		// Init temp data storage
-
-		//ptrs := make([]interface{}, len(columns))
-		//var ptrs []interface {} = make([]*sql.NullString, len(columns))
-
-		data := make([]*sql.NullString, len(columns))
-		ptrs := make([]interface{}, len(columns))
-		for i, _ := range data {
-			ptrs[i] = &data[i]
-		}
-
-		// Read data
-		if err := rows.Scan(ptrs...); err != nil {
-			return "", err
-		}
-
-		dataStrings := make([]string, len(columns))
-
-		for key, value := range data {
-			if value != nil && value.Valid {
-				dataStrings[key] = "'" + value.String + "'"
-			} else {
-				dataStrings[key] = "null"
-			}
-		}
-
-		data_text = append(data_text, "("+strings.Join(dataStrings, ",")+")")
-	}
-
-	return strings.Join(data_text, ","), rows.Err()
 }

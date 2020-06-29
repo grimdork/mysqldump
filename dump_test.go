@@ -179,7 +179,7 @@ func TestCreateTableValuesOk(t *testing.T) {
 		t.FailNow()
 	}
 
-	result, err := d.createMySQLTableValues("test")
+	result, err := d.createTableValues("test")
 	if err != nil {
 		t.Errorf("error was not expected while updating stats: %s", err)
 	}
@@ -217,7 +217,7 @@ func TestCreateTableValuesNil(t *testing.T) {
 		t.FailNow()
 	}
 
-	result, err := d.createMySQLTableValues("test")
+	result, err := d.createTableValues("test")
 	if err != nil {
 		t.Errorf("error was not expected while updating stats: %s", err)
 	}
@@ -310,7 +310,7 @@ func TestDumpOk(t *testing.T) {
 
 	dumper, err := NewDumper(db, os.TempDir(), tmpname)
 	if err != nil {
-		t.Errorf("Couldn't reate dumper structure: %s", err.Error())
+		t.Errorf("Couldn't create dumper structure: %s", err.Error())
 		t.FailNow()
 	}
 
