@@ -122,6 +122,37 @@ const (
 	// This removes the table dumper from the database.
 	PG_DROP_SHOW_TABLE_SQL = `DROP FUNCTION show_create_table(p_table_name varchar);`
 
+	pgheader = `-- Go SQL Dump {{ .DumpVersion }}
+--
+-- ------------------------------------------------------
+-- Server version	{{ .ServerVersion }}
+
+`
+
+	pgtableheader = `{{ with .Table }}
+--
+-- Table structure for table {{ .Name }}
+--
+DROP TABLE IF EXISTS {{ .Name }};
+{{ .Sequences }}
+{{ end }}
+`
+
+	pgtablesql = `{{ with .Table }}
+{{ .SQL }};
+
+--
+-- Dumping data for table {{ .Name }}
+--
+{{ end }}
+`
+
+	pgvaluesql = `{{with .Table}} {{if .Values}} INSERT INTO {{.Name}} VALUES {{.Values}};
+{{end}}{{end}}`
+
+	pgfooter = `-- Dump completed on {{ .CompleteTime }}
+`
+
 	pgtpl = `-- Go SQL Dump {{ .DumpVersion }}
 	--
 	-- ------------------------------------------------------
@@ -158,33 +189,76 @@ from information_schema.sequences where sequence_name=$1
 
 // DumpPostgres to file.
 func (d *Dumper) DumpPostgres(data dump, list ...string) error {
+	var err error
+
 	// Install the procedure to generate SQL for tables.
-	err := d.installProcedure()
+	err = d.installProcedure()
 	if err != nil {
 		return err
 	}
 
+	// Prepare templates
+	thead, err := template.New("tableheader").Parse(pgtableheader)
+	if err != nil {
+		return err
+	}
+
+	ttab, err := template.New("tablesql").Parse(pgtablesql)
+	if err != nil {
+		return err
+	}
+
+	tval, err := template.New("valuesql").Parse(pgvaluesql)
+	if err != nil {
+		println(pgvaluesql)
+		return err
+	}
+
+	tfoot, err := template.New("ftableooter").Parse(pgfooter)
+	if err != nil {
+		return err
+	}
+
+	thead.Execute(data.file, data)
 	for _, name := range list {
-		t, err := d.createPostgresTable(name)
+		data.Table, err = d.createPostgresTable(name)
 		if err != nil {
 			return err
 		}
-		data.Tables = append(data.Tables, t)
+
+		ttab.Execute(data.file, data)
+
+		max, err := d.countPostgresRows(name)
+		if err != nil {
+			return err
+		}
+
+		offset := int64(0)
+		step := d.step
+		if step > max {
+			step = max
+		}
+		for offset < max {
+			if data.Table.Values, err = d.createTableValues(name, offset, step); err != nil {
+				return err
+			}
+
+			tval.Execute(data.file, data)
+			offset += step
+		}
 	}
 
 	// Set complete time
 	data.CompleteTime = time.Now().String()
+	tfoot.Execute(data.file, data)
 
-	// Write dump to file
-	t, err := template.New("mysqldump").Parse(pgtpl)
-	if err != nil {
-		return err
-	}
+	return d.dropProcedure()
+}
 
-	t.Execute(data.file, data)
-
-	err = d.dropProcedure()
-	return err
+func (d *Dumper) countPostgresRows(name string) (int64, error) {
+	var c sql.NullInt64
+	err := d.db.QueryRow("SELECT count(*) FROM public." + name).Scan(&c)
+	return c.Int64, err
 }
 
 func getStringRows(rows *sql.Rows) ([]string, error) {
@@ -253,10 +327,6 @@ func (d *Dumper) createPostgresTable(name string) (*table, error) {
 	t.Sequences = buf.String()
 
 	if t.SQL, err = d.createPostgresTableSQL(name); err != nil {
-		return nil, err
-	}
-
-	if t.Values, err = d.createTableValues(name); err != nil {
 		return nil, err
 	}
 

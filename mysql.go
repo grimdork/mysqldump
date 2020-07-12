@@ -101,7 +101,7 @@ func (d *Dumper) createMySQLTable(name string) (*table, error) {
 		return nil, err
 	}
 
-	if t.Values, err = d.createTableValues(name); err != nil {
+	if t.Values, err = d.createTableValues(name, 0, 0); err != nil {
 		return nil, err
 	}
 

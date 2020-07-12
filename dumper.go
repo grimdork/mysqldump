@@ -11,6 +11,8 @@ import (
 type Dumper struct {
 	db   *sql.DB
 	path string
+	step int64
+	pg   bool
 }
 
 func NewDumper(db *sql.DB, dir, basename string) (*Dumper, error) {
@@ -22,7 +24,16 @@ func NewDumper(db *sql.DB, dir, basename string) (*Dumper, error) {
 	return &Dumper{
 		db:   db,
 		path: path,
+		step: 1000,
 	}, nil
+}
+
+// SetMaxRows sets the number of rows to fetch at a time.
+// Default is 1000. Lower this if running out of memory or timing out.
+func (d *Dumper) SetMaxRows(n int64) {
+	if d.step > 0 {
+		d.step = n
+	}
 }
 
 // Closes the dumper.
