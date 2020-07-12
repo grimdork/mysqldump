@@ -50,6 +50,7 @@ func (d *Dumper) Dump(filters ...string) error {
 	}
 
 	if strings.Contains(data.ServerVersion, "PostgreSQL") {
+		d.pg = true
 		if len(list) == 0 {
 			list, err = d.getPostgresTables()
 			if err != nil {
@@ -78,9 +79,20 @@ func (d *Dumper) getServerVersion() (string, error) {
 	return server_version.String, nil
 }
 
-func (d *Dumper) createTableValues(name string) (string, error) {
+func (d *Dumper) createTableValues(name string, offset, max int64) (string, error) {
 	// Get Data
-	rows, err := d.db.Query("SELECT * FROM " + name)
+	if max == 0 {
+		max = 1000
+	}
+
+	var rows *sql.Rows
+	var err error
+	if d.pg {
+		rows, err = d.db.Query("SELECT * FROM "+name+" LIMIT $1 OFFSET $2;", max, offset)
+	} else {
+		rows, err = d.db.Query("SELECT * FROM "+name+" LIMIT ? OFFSET ?;", max, offset)
+	}
+
 	if err != nil {
 		return "", err
 	}
