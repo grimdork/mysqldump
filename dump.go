@@ -19,10 +19,9 @@ type dump struct {
 	DumpVersion   string
 	ServerVersion string
 	Tables        []*table
+	Table         *table
 	CompleteTime  string
 }
-
-const version = "0.5.0"
 
 // Dump a MySQL/MariaDB or PostgreSQL database or selection of tables from same based on the options supplied through the dumper.
 func (d *Dumper) Dump(filters ...string) error {
