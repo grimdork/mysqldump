@@ -72,11 +72,11 @@ func (d *Dumper) Dump(filters ...string) error {
 }
 
 func (d *Dumper) getServerVersion() (string, error) {
-	var server_version sql.NullString
-	if err := d.db.QueryRow("SELECT version()").Scan(&server_version); err != nil {
+	var serverversion sql.NullString
+	if err := d.db.QueryRow("SELECT version()").Scan(&serverversion); err != nil {
 		return "", err
 	}
-	return server_version.String, nil
+	return serverversion.String, nil
 }
 
 func (d *Dumper) createTableValues(name string, offset, max int64) (string, error) {
@@ -109,7 +109,7 @@ func (d *Dumper) createTableValues(name string, offset, max int64) (string, erro
 	}
 
 	// Read data
-	data_text := make([]string, 0)
+	datatext := make([]string, 0)
 	for rows.Next() {
 		data := make([]*sql.NullString, len(columns))
 		ptrs := make([]interface{}, len(columns))
@@ -132,8 +132,8 @@ func (d *Dumper) createTableValues(name string, offset, max int64) (string, erro
 			}
 		}
 
-		data_text = append(data_text, "("+strings.Join(dataStrings, ",")+")")
+		datatext = append(datatext, "("+strings.Join(dataStrings, ",")+")")
 	}
 
-	return strings.Join(data_text, ","), rows.Err()
+	return strings.Join(datatext, ","), rows.Err()
 }

@@ -179,7 +179,7 @@ func TestCreateTableValuesOk(t *testing.T) {
 		t.FailNow()
 	}
 
-	result, err := d.createTableValues("test")
+	result, err := d.createTableValues("test", 0, 100)
 	if err != nil {
 		t.Errorf("error was not expected while updating stats: %s", err)
 	}
@@ -217,7 +217,7 @@ func TestCreateTableValuesNil(t *testing.T) {
 		t.FailNow()
 	}
 
-	result, err := d.createTableValues("test")
+	result, err := d.createTableValues("test", 0, 100)
 	if err != nil {
 		t.Errorf("error was not expected while updating stats: %s", err)
 	}
